@@ -1,0 +1,68 @@
+# Step 1: Data Collection
+# Assume you have a CSV file with columns 'text' and 'sentiment'
+import pandas as pd
+
+# Load your dataset
+df = pd.read_csv('social_media_dataset.csv')
+
+# Step 2: Text Preprocessing
+import re
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from sklearn.model_selection import train_test_split
+
+# Download NLTK resources
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt')
+
+# Clean and preprocess text data
+def preprocess_text(text):
+    text = re.sub(r'[^a-zA-Z\s]', '', text, re.I|re.A)
+    text = text.lower()
+    tokens = word_tokenize(text)
+    tokens = [word for word in tokens if word not in stopwords.words('english')]
+    return ' '.join(tokens)
+
+df['processed_text'] = df['text'].apply(preprocess_text)
+
+# Step 3: Feature Extraction
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Convert text data into numerical features using TF-IDF
+tfidf_vectorizer = TfidfVectorizer(max_features=5000)  # You can adjust max_features based on your dataset size
+X = tfidf_vectorizer.fit_transform(df['processed_text']).toarray()
+y = df['sentiment']
+
+# Step 4: Model Selection and Step 5: Model Training
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train a Naive Bayes classifier
+model = MultinomialNB()
+model.fit(X_train, y_train)
+
+# Step 6: Model Evaluation
+# Evaluate the model on the test set
+y_pred = model.predict(X_test)
+
+# Print metrics
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("Classification Report:\n", classification_report(y_test, y_pred))
+
+# Step 7: Deployment
+# Assuming you want a simple command-line interface
+def predict_sentiment(input_text):
+    processed_text = preprocess_text(input_text)
+    input_vector = tfidf_vectorizer.transform([processed_text]).toarray()
+    prediction = model.predict(input_vector)
+    return prediction[0]
+
+# Example usage
+user_input = "I love this product! It's amazing."
+predicted_sentiment = predict_sentiment(user_input)
+print("Predicted Sentiment:", predicted_sentiment)
